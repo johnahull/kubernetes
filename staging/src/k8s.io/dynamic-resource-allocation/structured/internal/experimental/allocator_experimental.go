@@ -294,6 +294,7 @@ func (a *Allocator) Allocate(ctx context.Context, node *v1.Node, claims []*resou
 					requestNames:  sets.New(constraint.Requests...),
 					attributeName: matchAttribute,
 					features:      a.features,
+					preferred:     constraint.Enforcement != nil && *constraint.Enforcement == resourceapi.ConstraintEnforcementPreferred,
 				}
 				constraints[i] = m
 			case constraint.DistinctAttribute != nil:
@@ -866,6 +867,7 @@ type matchAttributeConstraint struct {
 	requestNames  sets.Set[string]
 	attributeName resourceapi.FullyQualifiedName
 	features      Features
+	preferred     bool
 
 	// For scalar values (existing behavior)
 	attribute *resourceapi.DeviceAttribute
@@ -1496,6 +1498,10 @@ func (alloc *allocator) allocateDevice(r deviceIndices, device deviceWithID, mus
 	for i, constraint := range alloc.constraints[r.claimIndex] {
 		added := constraint.add(baseRequestName, subRequestName, device.Device, device.id)
 		if !added {
+			if mc, ok := constraint.(*matchAttributeConstraint); ok && mc.preferred {
+				alloc.logger.V(6).Info("Preferred constraint not satisfied, skipping", "constraint", i, "device", device.id)
+				continue
+			}
 			if must {
 				// It does not make sense to declare a claim where a constraint prevents getting
 				// all devices. Treat this as an error.

@@ -995,6 +995,7 @@ func autoConvert_v1_DeviceConstraint_To_resource_DeviceConstraint(in *resourcev1
 	out.Requests = *(*[]string)(unsafe.Pointer(&in.Requests))
 	out.MatchAttribute = (*resource.FullyQualifiedName)(unsafe.Pointer(in.MatchAttribute))
 	out.DistinctAttribute = (*resource.FullyQualifiedName)(unsafe.Pointer(in.DistinctAttribute))
+	out.Enforcement = (*resource.ConstraintEnforcement)(unsafe.Pointer(in.Enforcement))
 	return nil
 }
 
@@ -1007,6 +1008,7 @@ func autoConvert_resource_DeviceConstraint_To_v1_DeviceConstraint(in *resource.D
 	out.Requests = *(*[]string)(unsafe.Pointer(&in.Requests))
 	out.MatchAttribute = (*resourcev1.FullyQualifiedName)(unsafe.Pointer(in.MatchAttribute))
 	out.DistinctAttribute = (*resourcev1.FullyQualifiedName)(unsafe.Pointer(in.DistinctAttribute))
+	out.Enforcement = (*resourcev1.ConstraintEnforcement)(unsafe.Pointer(in.Enforcement))
 	return nil
 }
 
