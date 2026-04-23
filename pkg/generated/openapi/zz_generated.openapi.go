@@ -47899,6 +47899,13 @@ func schema_k8sio_api_resource_v1_DeviceConstraint(ref common.ReferenceCallback)
 							Format:      "",
 						},
 					},
+					"enforcement": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Enforcement controls whether this constraint must be satisfied or is merely preferred. When set to \"Preferred\", the scheduler tries to satisfy the constraint but proceeds with allocation if it cannot. Defaults to \"Required\".",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},

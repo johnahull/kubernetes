@@ -1341,6 +1341,13 @@ func (m *DeviceConstraint) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Enforcement != nil {
+		i -= len(*m.Enforcement)
+		copy(dAtA[i:], *m.Enforcement)
+		i = encodeVarintGenerated(dAtA, i, uint64(len(*m.Enforcement)))
+		i--
+		dAtA[i] = 0x22
+	}
 	if m.DistinctAttribute != nil {
 		i -= len(*m.DistinctAttribute)
 		copy(dAtA[i:], *m.DistinctAttribute)
@@ -3107,6 +3114,10 @@ func (m *DeviceConstraint) Size() (n int) {
 	}
 	if m.DistinctAttribute != nil {
 		l = len(*m.DistinctAttribute)
+		n += 1 + l + sovGenerated(uint64(l))
+	}
+	if m.Enforcement != nil {
+		l = len(*m.Enforcement)
 		n += 1 + l + sovGenerated(uint64(l))
 	}
 	return n
@@ -8057,6 +8068,39 @@ func (m *DeviceConstraint) Unmarshal(dAtA []byte) error {
 			}
 			s := FullyQualifiedName(dAtA[iNdEx:postIndex])
 			m.DistinctAttribute = &s
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Enforcement", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := ConstraintEnforcement(dAtA[iNdEx:postIndex])
+			m.Enforcement = &s
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
