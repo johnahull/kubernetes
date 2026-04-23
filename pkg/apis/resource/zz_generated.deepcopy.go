@@ -663,6 +663,11 @@ func (in *DeviceConstraint) DeepCopyInto(out *DeviceConstraint) {
 		*out = new(FullyQualifiedName)
 		**out = **in
 	}
+	if in.Enforcement != nil {
+		in, out := &in.Enforcement, &out.Enforcement
+		*out = new(ConstraintEnforcement)
+		**out = **in
+	}
 	return
 }
 

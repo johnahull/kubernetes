@@ -1376,7 +1376,23 @@ type DeviceConstraint struct {
 	// +oneOf=ConstraintType
 	// +featureGate=DRAConsumableCapacity
 	DistinctAttribute *FullyQualifiedName
+
+	// Enforcement controls whether this constraint must be satisfied or is
+	// merely preferred. When set to "Preferred", the scheduler tries to
+	// satisfy the constraint but proceeds with allocation if it cannot.
+	// Defaults to "Required".
+	//
+	// +optional
+	Enforcement *ConstraintEnforcement
 }
+
+// ConstraintEnforcement specifies whether a device constraint is required or preferred.
+type ConstraintEnforcement string
+
+const (
+	ConstraintEnforcementRequired  ConstraintEnforcement = "Required"
+	ConstraintEnforcementPreferred ConstraintEnforcement = "Preferred"
+)
 
 // DeviceClaimConfiguration is used for configuration parameters in DeviceClaim.
 type DeviceClaimConfiguration struct {
