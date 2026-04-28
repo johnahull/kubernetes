@@ -316,11 +316,12 @@ func NewContainerManager(ctx context.Context, mountUtil mount.Interface, cadviso
 	// Initialize DRA manager
 	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.DynamicResourceAllocation) {
 		logger.Info("Creating Dynamic Resource Allocation (DRA) manager")
-		cm.draManager, err = dra.NewManager(logger, kubeClient, nodeConfig.KubeletRootDir)
+		cm.draManager, err = dra.NewManager(logger, kubeClient, nodeConfig.KubeletRootDir, string(nodeConfig.NodeName))
 		if err != nil {
 			return nil, err
 		}
 		metrics.RegisterCollectors(cm.draManager.NewMetricsCollector())
+		cm.topologyManager.AddHintProvider(logger, cm.draManager)
 	}
 	cm.kubeClient = kubeClient
 
