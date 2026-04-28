@@ -107,6 +107,9 @@ type Manager struct {
 
 	// update channel for resource updates
 	update chan resourceupdates.Update
+
+	// nodeName is needed to scope ResourceSlice queries
+	nodeName string
 }
 
 // NewManager creates a new DRA manager.
@@ -118,7 +121,7 @@ type Manager struct {
 // - Don't include the namespace, it can be inferred from the context.
 // - Avoid repeated "failed to ...: failed to ..." when wrapping errors.
 // - Avoid wrapping when it does not provide relevant additional information to keep the user-visible error short.
-func NewManager(logger klog.Logger, kubeClient clientset.Interface, stateFileDirectory string) (*Manager, error) {
+func NewManager(logger klog.Logger, kubeClient clientset.Interface, stateFileDirectory string, nodeName string) (*Manager, error) {
 	claimInfoCache, err := newClaimInfoCache(stateFileDirectory, draManagerStateFileName)
 	if err != nil {
 		return nil, fmt.Errorf("create ResourceClaim cache: %w", err)
@@ -141,6 +144,7 @@ func NewManager(logger klog.Logger, kubeClient clientset.Interface, stateFileDir
 		sourcesReady:    nil,
 		healthInfoCache: healthInfoCache,
 		update:          make(chan resourceupdates.Update, 100),
+		nodeName:        nodeName,
 	}
 
 	return manager, nil

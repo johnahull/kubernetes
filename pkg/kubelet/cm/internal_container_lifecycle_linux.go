@@ -33,6 +33,7 @@ func (i *internalContainerLifecycleImpl) PreCreateContainer(logger klog.Logger, 
 		allocatedCPUs := i.cpuManager.GetCPUAffinity(string(pod.UID), container.Name)
 		if !allocatedCPUs.IsEmpty() {
 			containerConfig.Linux.Resources.CpusetCpus = allocatedCPUs.String()
+			logger.V(2).Info("PreCreateContainer: setting cpuset", "pod", klog.KObj(pod), "container", container.Name, "cpuset", allocatedCPUs.String())
 		}
 	}
 
