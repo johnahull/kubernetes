@@ -37,6 +37,15 @@ const (
 	// referring to a PCI (Peripheral Component Interconnect) device.
 	// This attribute can be used to identify PCI devices.
 	StandardDeviceAttributePCIBusID resourceapi.QualifiedName = StandardDeviceAttributePrefix + "pciBusID"
+
+	// StandardDeviceAttributeNUMANode is a standard device attribute name
+	// which identifies the memory controller (NUMA node) servicing a device.
+	// The value is an integer from the kernel's numa_node sysfs entry.
+	// Devices with the same numaNode share a memory controller.
+	// This attribute is orthogonal to pcieRoot, which identifies the PCIe
+	// switch tree — a GPU and NIC can be on different PCIe roots but the
+	// same NUMA node.
+	StandardDeviceAttributeNUMANode resourceapi.QualifiedName = StandardDeviceAttributePrefix + "numaNode"
 )
 
 // DeviceAttribute represents a device attribute name and its value
