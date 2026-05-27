@@ -46,6 +46,14 @@ const (
 	// switch tree — a GPU and NIC can be on different PCIe roots but the
 	// same NUMA node.
 	StandardDeviceAttributeNUMANode resourceapi.QualifiedName = StandardDeviceAttributePrefix + "numaNode"
+
+	// StandardDeviceAttributeLocalNUMANodes is a standard device attribute name
+	// which identifies all NUMA nodes equidistant to a device, derived from the
+	// ACPI SLIT distance matrix. On shared I/O die hardware, a device may be
+	// equidistant to multiple memory controllers. The value is an integer list
+	// (requires DRAListTypeAttributes feature gate). Devices with overlapping
+	// localNUMANodes lists share an I/O die or closest interconnect domain.
+	StandardDeviceAttributeLocalNUMANodes resourceapi.QualifiedName = StandardDeviceAttributePrefix + "localNUMANodes"
 )
 
 // DeviceAttribute represents a device attribute name and its value
