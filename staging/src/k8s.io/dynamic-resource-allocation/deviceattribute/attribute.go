@@ -37,6 +37,25 @@ const (
 	// referring to a PCI (Peripheral Component Interconnect) device.
 	// This attribute can be used to identify PCI devices.
 	StandardDeviceAttributePCIBusID resourceapi.QualifiedName = StandardDeviceAttributePrefix + "pciBusID"
+
+	// StandardDeviceAttributeNUMANode is a standard device attribute name
+	// which identifies the NUMA topology of a device. The value is an
+	// integer list (requires DRAListTypeAttributes feature gate) where
+	// the first element is the device's physical NUMA node (from the
+	// kernel's numa_node sysfs entry) and any additional elements are
+	// NUMA nodes equidistant to the device, derived from the ACPI SLIT
+	// distance matrix. A socket boundary filter excludes cross-socket
+	// matches.
+	//
+	// For CPU and memory devices (which ARE a NUMA node), this is a
+	// single-element list [N]. For I/O devices on shared I/O die
+	// hardware (e.g., AMD EPYC chiplets under NPS4), this may include
+	// multiple NUMA nodes: [physical, equidistant1, equidistant2, ...].
+	//
+	// With DRAListTypeAttributes, matchAttribute uses non-empty set
+	// intersection (KEP-5491), so a CPU device [4] matches an I/O
+	// device [4, 5, 6, 7] because {4} ∩ {4,5,6,7} ≠ ∅.
+	StandardDeviceAttributeNUMANode resourceapi.QualifiedName = StandardDeviceAttributePrefix + "numaNode"
 )
 
 // DeviceAttribute represents a device attribute name and its value
