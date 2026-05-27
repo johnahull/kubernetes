@@ -20,21 +20,31 @@ import (
 	"fmt"
 	"io/fs"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
 	resourceapi "k8s.io/api/resource/v1"
-	"k8s.io/utils/ptr"
 )
 
-// GetNUMANodeByPCIBusID returns the NUMA node for a PCI device identified by
-// its Bus-Device-Function address (e.g., "0000:04:1f.0").
+// GetNUMANodesByPCIBusID returns the list of NUMA nodes that are equidistant
+// to a PCI device, using the ACPI SLIT distance matrix.
 //
-// It reads /sys/bus/pci/devices/<BDF>/numa_node, which the kernel populates
-// from the root bridge's ACPI _PXM proximity domain. The value identifies
-// which memory controller services the device. A value of -1 means the
-// kernel has no NUMA affinity information for the device.
-func GetNUMANodeByPCIBusID(pciBusID string, mods ...MachineModifier) (DeviceAttribute, error) {
+// On hardware with a shared I/O die (e.g., AMD EPYC chiplets), a PCI device
+// may be equidistant to multiple memory controllers. The kernel reports a
+// single numa_node, but the SLIT distances reveal the true topology. This
+// function reads the device's reported numa_node, then reads the SLIT
+// distance row for that node to find all nodes at the same minimum distance.
+//
+// For example, on a 2-socket system with 4 NUMA nodes per socket and a
+// shared I/O die, a GPU reporting numa_node=0 with distances [10, 12, 12, 12, 32, 32, 32, 32]
+// returns [0, 1, 2, 3] — all nodes on the same socket at distance 12.
+//
+// If SLIT distances are unavailable, falls back to a single-element list
+// containing only the reported numa_node.
+//
+// Requires the DRAListTypeAttributes feature gate for the IntValues field.
+func GetNUMANodesByPCIBusID(pciBusID string, mods ...MachineModifier) (DeviceAttribute, error) {
 	var mc machine
 	initDefaultMachine(&mc)
 	for _, mod := range mods {
@@ -51,17 +61,88 @@ func GetNUMANodeByPCIBusID(pciBusID string, mods ...MachineModifier) (DeviceAttr
 		return DeviceAttribute{}, fmt.Errorf("failed to read NUMA node for PCI Bus ID %s: %w", pciBusID, err)
 	}
 
-	node, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	reportedNode, err := strconv.Atoi(strings.TrimSpace(string(data)))
 	if err != nil {
 		return DeviceAttribute{}, fmt.Errorf("failed to parse NUMA node for PCI Bus ID %s: %w", pciBusID, err)
 	}
 
-	attr := DeviceAttribute{
-		Name:  StandardDeviceAttributeNUMANode,
-		Value: resourceapi.DeviceAttribute{IntValue: ptr.To(int64(node))},
+	if reportedNode < 0 {
+		return DeviceAttribute{
+			Name:  StandardDeviceAttributeNUMANode,
+			Value: resourceapi.DeviceAttribute{IntValues: []int64{int64(reportedNode)}},
+		}, nil
 	}
 
-	return attr, nil
+	nodes, err := getEquidistantNUMANodes(mc, reportedNode)
+	if err != nil {
+		nodes = []int{reportedNode}
+	}
+
+	intValues := make([]int64, len(nodes))
+	for i, n := range nodes {
+		intValues[i] = int64(n)
+	}
+
+	return DeviceAttribute{
+		Name:  StandardDeviceAttributeNUMANode,
+		Value: resourceapi.DeviceAttribute{IntValues: intValues},
+	}, nil
+}
+
+// getEquidistantNUMANodes reads the SLIT distance row for the given NUMA node
+// and returns all nodes at the minimum non-self distance, plus the node itself.
+//
+// The SLIT distance file at /sys/devices/system/node/nodeN/distance contains
+// space-separated integers: one distance value per NUMA node. Distance 10 is
+// self (LOCAL_DISTANCE). The minimum non-self distance identifies nodes on the
+// same I/O die or closest interconnect domain.
+func getEquidistantNUMANodes(mc machine, node int) ([]int, error) {
+	distPath := filepath.Join("devices", "system", "node", fmt.Sprintf("node%d", node), "distance")
+	data, err := fs.ReadFile(mc.sysfs, distPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read SLIT distances for NUMA node %d: %w", node, err)
+	}
+
+	fields := strings.Fields(strings.TrimSpace(string(data)))
+	if len(fields) == 0 {
+		return nil, fmt.Errorf("empty distance file for NUMA node %d", node)
+	}
+
+	distances := make([]int, len(fields))
+	for i, f := range fields {
+		d, err := strconv.Atoi(f)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse distance value %q for NUMA node %d: %w", f, node, err)
+		}
+		distances[i] = d
+	}
+
+	// Find minimum non-self distance (self is always 10 = LOCAL_DISTANCE)
+	minDist := -1
+	for i, d := range distances {
+		if i == node {
+			continue
+		}
+		if minDist == -1 || d < minDist {
+			minDist = d
+		}
+	}
+
+	// Single-node system: no non-self distances
+	if minDist == -1 {
+		return []int{node}, nil
+	}
+
+	// Collect self + all nodes at minimum distance
+	var nodes []int
+	for i, d := range distances {
+		if i == node || d == minDist {
+			nodes = append(nodes, i)
+		}
+	}
+
+	sort.Ints(nodes)
+	return nodes, nil
 }
 
 // GetNUMANodeForCPU returns the NUMA node ID for a given CPU core.
