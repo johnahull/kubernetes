@@ -25,7 +25,34 @@ import (
 	"strings"
 
 	resourceapi "k8s.io/api/resource/v1"
+	"k8s.io/utils/ptr"
 )
+
+// GetNUMANodeByPCIBusID returns the numaNode attribute for a PCI device as a
+// scalar int (physical NUMA node only). Use when DRAListTypeAttributes is not
+// available. A value of -1 means the kernel has no NUMA affinity information
+// for the device.
+func GetNUMANodeByPCIBusID(pciBusID string, mods ...MachineModifier) (DeviceAttribute, error) {
+	var mc machine
+	initDefaultMachine(&mc)
+	for _, mod := range mods {
+		mod(&mc)
+	}
+
+	if err := verifyPCIBDFFormat(pciBusID); err != nil {
+		return DeviceAttribute{}, err
+	}
+
+	node, err := readNUMANode(mc, pciBusID)
+	if err != nil {
+		return DeviceAttribute{}, err
+	}
+
+	return DeviceAttribute{
+		Name:  StandardDeviceAttributeNUMANode,
+		Value: resourceapi.DeviceAttribute{IntValue: ptr.To(int64(node))},
+	}, nil
+}
 
 // GetNUMANodeListByPCIBusID returns the numaNode list attribute for a PCI
 // device. The first element is the device's physical NUMA node (from sysfs
